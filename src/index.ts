@@ -1,14 +1,10 @@
-import {load} from 'cheerio'
 import {browser} from './browser.ts'
-import {getSitemap} from './sitemap.ts'
-import {cache} from './cache.ts'
+import {topLevelCache} from './cache.ts'
+import {getCategories, getSitemap} from './sitemap.ts'
 
-const content = await getSitemap()
+const sitemapHtml = await getSitemap()
+const categories = getCategories(sitemapHtml)
 
-await browser.close()
-await cache.disconnectAll()
+console.log('Categories:', categories)
 
-// First, scrape sitemap page to get entry categories for product listings
-const $ = load(content)
-
-console.log('Page Title:', $('title').text())
+await Promise.all([topLevelCache.disconnectAll(), browser.close()])
