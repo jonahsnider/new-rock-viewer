@@ -1,12 +1,18 @@
 {
 	"compilerOptions": {
-		"noEmit": true,
-		"target": "esnext",
-		"module": "nodenext",
-		"rewriteRelativeImportExtensions": true,
 		"erasableSyntaxOnly": true,
+		"module": "nodenext",
+		"noEmit": true,
+		"rewriteRelativeImportExtensions": true,
+		"skipLibCheck": true,
+		"target": "esnext",
 		"verbatimModuleSyntax": true
 	},
-	"include": ["**/*.ts", "**/*.tsx"],
-	"exclude": ["node_modules"]
+	"exclude": [
+		"node_modules"
+	],
+	"include": [
+		"**/*.ts",
+		"**/*.tsx"
+	]
 }
