@@ -1,10 +1,4 @@
-import {
-	BasketIcon,
-	DiamondIcon,
-	HashIcon,
-	ImageIcon,
-	LinkIcon,
-} from '@sanity/icons';
+import { BasketIcon, DiamondIcon, HashIcon, ImageIcon, LinkIcon } from '@sanity/icons';
 import { defineField, defineType } from 'sanity';
 
 export const product = defineType({

@@ -31,3 +31,5 @@
 .env
 
 /cache
+
+browser-state.json

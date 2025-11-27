@@ -23,7 +23,6 @@ export const browserCache = {
 	domcontentloaded: browserCacheRaw.namespace('domcontentloaded'),
 	load: browserCacheRaw.namespace('load'),
 	networkidle: browserCacheRaw.namespace('networkidle'),
-} satisfies Record<
-	'load' | 'domcontentloaded' | 'networkidle' | 'commit',
-	CacheProvider
->;
+} satisfies Record<'load' | 'domcontentloaded' | 'networkidle' | 'commit', CacheProvider>;
+
+export const apiCache = topLevelCache.namespace('api');

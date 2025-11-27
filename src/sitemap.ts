@@ -1,31 +1,21 @@
 import { load } from 'cheerio';
-import { browser } from './browser.ts';
+import { context } from './browser.ts';
 import { browserCache } from './cache.ts';
-import { env } from './env.ts';
 
 const SITEMAP_URL = 'https://www.newrock.com/en/sitemap';
 const WAIT_UNTIL = 'domcontentloaded';
 
-export async function getSitemap(): Promise<string> {
-	return browserCache[WAIT_UNTIL].getOrSet({
+export async function getCategoryUrls(): Promise<Set<string>> {
+	const sitemapHtml = await browserCache[WAIT_UNTIL].getOrSet({
 		key: SITEMAP_URL,
 		ttl: '1w',
 		factory: async () => {
-			const page = await browser.newPage({
-				extraHTTPHeaders: {
-					Cookie: env.NEW_ROCK_COOKIE,
-				},
-			});
+			const page = await context.newPage();
 
 			await page.goto(SITEMAP_URL, { waitUntil: WAIT_UNTIL });
-			const content = await page.content();
-
-			return content;
+			return page.content();
 		},
 	});
-}
-
-export function getCategories(sitemapHtml: string): Set<string> {
 	const $ = load(sitemapHtml);
 
 	const urls = $('.col.block-links')
