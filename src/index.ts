@@ -1,13 +1,9 @@
-import process from 'node:process';
 import { spinner } from '@clack/prompts';
-import PQueue from 'p-queue';
 import type { Product } from './api/schemas/product.ts';
-import { authenticate, browser, context } from './browser.ts';
+import { AsyncDisposablePage, authenticate, browser, context } from './browser.ts';
 import { topLevelCache } from './cache.ts';
 import { getProductPagesForCategory, getProductsForCategory } from './category.ts';
 import { getCategoryUrls } from './sitemap.ts';
-
-const queue = new PQueue({ concurrency: 1 });
 
 await authenticate(context);
 
@@ -18,31 +14,22 @@ extractionLog.start(`Extracting product listings for ${categoryUrls.size} catego
 
 const _products: Product[] = [];
 
-queue.addAll(
-	categoryUrls
-		.values()
-		.map((categoryUrl) => async () => {
-			const pageUrls = await getProductPagesForCategory(categoryUrl);
-			for (const pageUrl of pageUrls) {
-				const products = await getProductsForCategory(pageUrl);
+// Use browser context to make the fetch request with full auth and avoid bot detection
+await using disposablePage = await AsyncDisposablePage.create(context);
+const { page } = disposablePage;
 
-				products.push(...products);
-			}
-		})
-		.toArray(),
-);
+// Navigate to the domain first to establish context and trigger auth cookies
+await page.goto('https://www.newrock.com/en/', { waitUntil: 'domcontentloaded' });
 
-queue
-	.on('active', () => {
-		extractionLog.message(`Extracting product listings - ${queue.pending} running, ${queue.size} waiting`);
-	})
-	.on('error', (error) => {
-		console.error(error);
-		extractionLog.error('An error occurred while extracting product listings');
-		process.exit(1);
-	});
-
-await queue.onIdle();
+for (const categoryUrl of categoryUrls) {
+	extractionLog.message(`Loading pages for ${categoryUrl}`);
+	const pageUrls = await getProductPagesForCategory(page, categoryUrl);
+	for (const pageUrl of pageUrls) {
+		extractionLog.message(`Extracting listings for ${categoryUrl} - page ${pageUrl}`);
+		const products = await getProductsForCategory(page, pageUrl);
+		_products.push(...products);
+	}
+}
 
 extractionLog.stop('Finished extracting product listings');
 

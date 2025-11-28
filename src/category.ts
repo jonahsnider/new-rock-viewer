@@ -1,7 +1,7 @@
 import slugify from '@sindresorhus/slugify';
+import type { Page } from 'playwright';
 import { CategoryProductListingPage } from './api/schemas/category.ts';
 import type { Product } from './api/schemas/product.ts';
-import { AsyncDisposablePage, context } from './browser.ts';
 import { apiCache } from './cache.ts';
 
 const DEFAULT_SEARCH_PARAMS = {
@@ -10,7 +10,7 @@ const DEFAULT_SEARCH_PARAMS = {
 } as const;
 const X_REQUEST_ID_HEADER = 'x-request-id';
 
-async function fetchCategoryPageRaw(categoryUrl: string): Promise<CategoryProductListingPage> {
+async function fetchCategoryPageRaw(page: Page, categoryUrl: string): Promise<CategoryProductListingPage> {
 	const url = new URL(categoryUrl);
 
 	for (const [key, value] of Object.entries(DEFAULT_SEARCH_PARAMS)) {
@@ -24,22 +24,22 @@ async function fetchCategoryPageRaw(categoryUrl: string): Promise<CategoryProduc
 	const rawResponse = await apiCache.getOrSet({
 		key: cacheKey,
 		ttl: '24h',
+		hardTimeout: '15s',
 		factory: async () => {
-			// Use browser context to make the fetch request with full auth and avoid bot detection
-			await using disposablePage = await AsyncDisposablePage.create(context);
-			const { page } = disposablePage;
-
-			// Navigate to the domain first to establish context and trigger auth cookies
-			await page.goto('https://www.newrock.com/en/', { waitUntil: 'domcontentloaded' });
-
 			const requestId: string = crypto.randomUUID();
 
 			// Set up response listener before making the request - note no await
 			// Use a predicate to match the exact URL and ensure it's a GET request
-			const responsePromise = page.waitForResponse(async (response) => {
-				const actualRequestId = await response.request().headerValue('x-request-id');
-				return actualRequestId === requestId;
-			});
+			const responsePromise = page.waitForResponse(
+				(response) => {
+					const requestHeaders = response.request().headers();
+
+					return (
+						Object.hasOwn(requestHeaders, X_REQUEST_ID_HEADER) && requestHeaders[X_REQUEST_ID_HEADER] === requestId
+					);
+				},
+				{ timeout: 5000 },
+			);
 
 			// Trigger the request using fetch() with custom headers in the page context
 			// We ignore the return value here and instead capture the response using waitForResponse()
@@ -65,23 +65,24 @@ async function fetchCategoryPageRaw(categoryUrl: string): Promise<CategoryProduc
 				throw new Error(`HTTP ${response.status()}: ${response.statusText()}`);
 			}
 
-			return await response.json();
+			const json = await response.json();
+			return json;
 		},
 	});
 
 	return CategoryProductListingPage.parse(rawResponse);
 }
 
-export async function getProductsForCategory(categoryUrl: string): Promise<Product[]> {
-	const firstPageRaw = await fetchCategoryPageRaw(categoryUrl);
+export async function getProductsForCategory(page: Page, categoryUrl: string): Promise<Product[]> {
+	const firstPageRaw = await fetchCategoryPageRaw(page, categoryUrl);
 	return firstPageRaw.products;
 }
 
 /**
  * @returns A list of URLs for the product pages in the category.
  */
-export async function getProductPagesForCategory(categoryUrl: string): Promise<string[]> {
-	const firstPageRaw = await fetchCategoryPageRaw(categoryUrl);
+export async function getProductPagesForCategory(page: Page, categoryUrl: string): Promise<string[]> {
+	const firstPageRaw = await fetchCategoryPageRaw(page, categoryUrl);
 	const response = CategoryProductListingPage.parse(firstPageRaw);
 	const pages = Array.isArray(response.pagination.pages)
 		? response.pagination.pages
