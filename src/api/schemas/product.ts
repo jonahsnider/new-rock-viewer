@@ -37,7 +37,7 @@ export const Product = z.object({
 		large: Image,
 		legend: z.string(),
 		id_image: z.string(),
-		cover: z.string(),
+		cover: z.nullable(z.literal('1')),
 		position: z.string(),
 		associatedVariants: z.array(z.unknown()),
 	}),
