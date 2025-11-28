@@ -1,6 +1,7 @@
 import slugify from '@sindresorhus/slugify';
 import type { Page } from 'playwright';
 import { CategoryProductListingPage } from './api/schemas/category.ts';
+import type { Page as PaginationPage } from './api/schemas/pagination.ts';
 import type { Product } from './api/schemas/product.ts';
 import { apiCache } from './cache.ts';
 
@@ -70,15 +71,25 @@ export async function getProductsForCategory(page: Page, categoryUrl: string): P
 /**
  * @returns A list of URLs for the product pages in the category.
  */
-export async function getProductPagesForCategory(page: Page, categoryUrl: string): Promise<string[]> {
+export async function getProductPagesForCategory(
+	page: Page,
+	categoryUrl: string,
+): Promise<{ totalItems: number; pages: PaginationPage[] }> {
 	const firstPageRaw = await fetchCategoryPageRaw(page, categoryUrl);
 	if (firstPageRaw === undefined) {
-		return [];
+		return {
+			totalItems: 0,
+			pages: [],
+		};
 	}
 
 	const response = CategoryProductListingPage.parse(firstPageRaw);
 	const pages = Array.isArray(response.pagination.pages)
 		? response.pagination.pages
 		: Object.values(response.pagination.pages);
-	return pages.filter((page) => page.type === 'page').map((page) => page.url);
+
+	return {
+		totalItems: response.pagination.total_items,
+		pages: pages.filter((page) => page.type === 'page'),
+	};
 }
