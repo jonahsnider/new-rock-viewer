@@ -1,5 +1,5 @@
 import * as z from 'zod/mini';
-import { Html } from '../../schemas.ts';
+import { Html } from '../../../schemas.ts';
 import { Pagination } from './pagination.ts';
 import { Product } from './product.ts';
 import { SortOrder } from './sort-order.ts';

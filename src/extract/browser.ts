@@ -4,7 +4,7 @@ import { pathExists } from 'path-exists';
 import type { BrowserContext, Page } from 'playwright';
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { env } from './env.ts';
+import { env } from '../env.ts';
 
 chromium.use(StealthPlugin());
 
@@ -29,7 +29,7 @@ export const browser = await chromium.launch({
 	headless: true,
 });
 
-const STORAGE_STATE_PATH = path.join(import.meta.dirname, '..', 'browser-state.json');
+const STORAGE_STATE_PATH = path.join(import.meta.dirname, '..', '..', 'browser-state.json');
 
 export const context = await browser.newContext({
 	storageState: (await pathExists(STORAGE_STATE_PATH)) ? STORAGE_STATE_PATH : undefined,

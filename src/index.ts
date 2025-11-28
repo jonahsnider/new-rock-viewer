@@ -1,4 +1,4 @@
-import { extractProducts } from './extract.ts';
+import { extractProducts } from './extract/extract.ts';
 
 const allProducts = await extractProducts();
 

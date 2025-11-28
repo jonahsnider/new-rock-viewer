@@ -9,7 +9,7 @@ export const topLevelCache = new BentoCache({
 		// biome-ignore lint/correctness/useHookAtTopLevel: This isn't a React hook
 		file: bentostore().useL2Layer(
 			fileDriver({
-				directory: path.join(import.meta.dirname, '..', 'cache'),
+				directory: path.join(import.meta.dirname, '..', '..', 'cache'),
 				pruneInterval: '1h',
 			}),
 		),
