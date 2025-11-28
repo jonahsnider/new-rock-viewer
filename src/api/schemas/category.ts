@@ -1,12 +1,16 @@
 import * as z from 'zod/mini';
+import { Html } from '../../schemas.ts';
 import { Pagination } from './pagination.ts';
 import { Product } from './product.ts';
 import { SortOrder } from './sort-order.ts';
 
 export const CategoryProductListingPage = z.object({
-	rendered_products_top: z.string(),
-	rendered_products: z.string(),
-	rendered_products_bottom: z.string(),
+	rendered_products_top: Html,
+	rendered_products: Html,
+	rendered_products_bottom: Html,
+	rendered_products_header: Html,
+	rendered_facets: Html,
+	rendered_active_filters: Html,
 	result: z.object(),
 	label: z.string(),
 	products: z.array(Product),
