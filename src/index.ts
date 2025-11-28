@@ -13,7 +13,7 @@ const extractionLog = spinner();
 extractionLog.start(`Extracting product listings for ${categoryUrls.size} categories`);
 
 let expectedProductCount = 0;
-const allProducts: Product[] = [];
+const allProducts = new Map<string, Product>();
 
 // Use browser context to make the fetch request with full auth and avoid bot detection
 await using disposableBrowserPage = await AsyncDisposablePage.create(context);
@@ -24,7 +24,7 @@ await browserPage.goto('https://www.newrock.com/en/', { waitUntil: 'domcontentlo
 
 for (const categoryUrl of categoryUrls) {
 	extractionLog.message(
-		`Loading pages for ${categoryUrl} - products ${allProducts.length}/${expectedProductCount.toLocaleString()}`,
+		`Loading pages for ${categoryUrl} - products ${allProducts.size.toLocaleString()}/${expectedProductCount.toLocaleString()}`,
 	);
 	const { pages, totalItems } = await getProductPagesForCategory(browserPage, categoryUrl);
 
@@ -32,11 +32,13 @@ for (const categoryUrl of categoryUrls) {
 
 	for (const page of pages) {
 		extractionLog.message(
-			`Extracting listings for ${categoryUrl} - page ${page.page}, products ${allProducts.length}/${expectedProductCount.toLocaleString()}`,
+			`Extracting listings for ${categoryUrl} - page ${page.page}, products ${allProducts.size.toLocaleString()}/${expectedProductCount.toLocaleString()}`,
 		);
 		try {
 			const products = await getProductsForCategory(browserPage, page.url);
-			allProducts.push(...products);
+			for (const product of products) {
+				allProducts.set(product.id_product, product);
+			}
 		} catch (error) {
 			extractionLog.error(`An error occurred while extracting products for ${categoryUrl} - page ${page.page}`);
 			throw error;
@@ -44,7 +46,7 @@ for (const categoryUrl of categoryUrls) {
 	}
 }
 
-extractionLog.stop(`Finished extracting ${allProducts.length} product listings`);
+extractionLog.stop(`Finished extracting ${allProducts.size.toLocaleString()} product listings`);
 
 await context.close();
 await browser.close();
