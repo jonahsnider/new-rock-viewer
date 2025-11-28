@@ -22,8 +22,6 @@ for (const categoryUrl of categoryUrls) {
 		for (const pageUrl of pageUrls) {
 			const products = await getProductsForCategory(pageUrl);
 
-			console.log('SUCCESS - EXITING');
-			process.exit(0);
 			products.push(...products);
 		}
 	});
