@@ -1,4 +1,23 @@
 {
+	"name": "new-rock",
+	"version": "1.0.0",
+	"private": true,
+	"keywords": [
+		"sanity"
+	],
+	"license": "UNLICENSED",
+	"type": "module",
+	"main": "package.json",
+	"scripts": {
+		"build": "sanity build",
+		"deploy": "sanity deploy",
+		"deploy-graphql": "sanity graphql deploy",
+		"dev": "sanity dev",
+		"extract": "node --experimental-transform-types --env-file-if-exists=.env src/index.ts",
+		"lint": "biome check",
+		"lint:fix": "biome check --fix --unsafe",
+		"start": "sanity start"
+	},
 	"dependencies": {
 		"@clack/prompts": "^1.0.0-alpha.7",
 		"@sanity/icons": "^3.7.4",
@@ -22,24 +41,5 @@
 		"@biomejs/biome": "^2.3.7",
 		"@types/react": "^19.1",
 		"typescript": "^5.8"
-	},
-	"keywords": [
-		"sanity"
-	],
-	"license": "UNLICENSED",
-	"main": "package.json",
-	"name": "new-rock",
-	"private": true,
-	"scripts": {
-		"build": "sanity build",
-		"deploy": "sanity deploy",
-		"deploy-graphql": "sanity graphql deploy",
-		"dev": "sanity dev",
-		"lint": "biome check",
-		"lint:fix": "biome check --fix --unsafe",
-		"scrape": "node --experimental-transform-types --env-file-if-exists=.env src/index.ts",
-		"start": "sanity start"
-	},
-	"type": "module",
-	"version": "1.0.0"
+	}
 }
