@@ -1,9 +1,9 @@
 import slugify from '@sindresorhus/slugify';
 import normalizeUrl from 'normalize-url';
 import type { Page } from 'playwright';
-import { CategoryProductListingPage } from './api/schemas/category.ts';
-import type { Product } from './api/schemas/product.ts';
 import { apiCache } from './cache.ts';
+import { CategoryProductListingPage } from './schemas/api/category.ts';
+import type { Product } from './schemas/api/product.ts';
 
 const DEFAULT_SEARCH_PARAMS = {
 	id_currency: '2',

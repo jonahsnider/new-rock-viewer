@@ -1,8 +1,8 @@
 import { taskLog } from '@clack/prompts';
-import type { Product } from './api/schemas/product.ts';
 import { AsyncDisposablePage, authenticate, browser, context } from './browser.ts';
 import { topLevelCache } from './cache.ts';
 import { getProductsForCategory } from './category.ts';
+import type { Product } from './schemas/api/product.ts';
 import { getCategoryUrls } from './sitemap.ts';
 
 export async function extractProducts(): Promise<Map<string, Product>> {
