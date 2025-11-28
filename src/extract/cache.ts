@@ -1,7 +1,9 @@
 import path from 'node:path';
+import slugify from '@sindresorhus/slugify';
 import { BentoCache, bentostore } from 'bentocache';
 import { fileDriver } from 'bentocache/drivers/file';
 import type { CacheProvider } from 'bentocache/types';
+import normalizeUrl from 'normalize-url';
 
 export const topLevelCache = new BentoCache({
 	default: 'file',
@@ -26,3 +28,9 @@ export const browserCache = {
 } satisfies Record<'load' | 'domcontentloaded' | 'networkidle' | 'commit', CacheProvider>;
 
 export const apiCache = topLevelCache.namespace('api');
+
+export const productPagesCache = topLevelCache.namespace('product-pages');
+
+export function getCacheKey(url: URL): string {
+	return slugify(normalizeUrl(url.toString()), { preserveCharacters: ['/'] });
+}

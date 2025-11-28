@@ -1,7 +1,5 @@
-import slugify from '@sindresorhus/slugify';
-import normalizeUrl from 'normalize-url';
 import type { Page } from 'playwright';
-import { apiCache } from './cache.ts';
+import { apiCache, getCacheKey } from './cache.ts';
 import { CategoryProductListingPage } from './schemas/api/category.ts';
 import type { Product } from './schemas/api/product.ts';
 
@@ -17,8 +15,7 @@ async function fetchCategoryPageRaw(page: Page, categoryUrl: string): Promise<Ca
 		url.searchParams.set(key, value);
 	}
 
-	// Use slugify to create a clean, filesystem-safe cache key from the full URL
-	const cacheKey = slugify(normalizeUrl(url.toString()), { preserveCharacters: ['/'] });
+	const cacheKey = getCacheKey(url);
 
 	// Cache the raw JSON string to avoid bentocache serialization issues with arrays
 	const rawResponse = await apiCache.getOrSet({
