@@ -8,9 +8,8 @@ const DEFAULT_SEARCH_PARAMS = {
 	id_currency: '2',
 	SubmitCurrency: '1',
 } as const;
-const X_REQUEST_ID_HEADER = 'x-request-id';
 
-async function fetchCategoryPageRaw(page: Page, categoryUrl: string): Promise<CategoryProductListingPage> {
+async function fetchCategoryPageRaw(page: Page, categoryUrl: string): Promise<CategoryProductListingPage | undefined> {
 	const url = new URL(categoryUrl);
 
 	for (const [key, value] of Object.entries(DEFAULT_SEARCH_PARAMS)) {
@@ -37,6 +36,12 @@ async function fetchCategoryPageRaw(page: Page, categoryUrl: string): Promise<Ca
 						credentials: 'include',
 					});
 
+					if (response.redirected) {
+						// Some of the links in the sitemap are broken
+						// Instead of 404ing, they redirect you to the home page
+						return null;
+					}
+
 					if (response.ok) {
 						return await response.json();
 					}
@@ -50,12 +55,16 @@ async function fetchCategoryPageRaw(page: Page, categoryUrl: string): Promise<Ca
 		},
 	});
 
+	if (!rawResponse) {
+		return undefined;
+	}
+
 	return CategoryProductListingPage.parse(rawResponse);
 }
 
 export async function getProductsForCategory(page: Page, categoryUrl: string): Promise<Product[]> {
 	const firstPageRaw = await fetchCategoryPageRaw(page, categoryUrl);
-	return firstPageRaw.products;
+	return firstPageRaw?.products ?? [];
 }
 
 /**
@@ -63,6 +72,10 @@ export async function getProductsForCategory(page: Page, categoryUrl: string): P
  */
 export async function getProductPagesForCategory(page: Page, categoryUrl: string): Promise<string[]> {
 	const firstPageRaw = await fetchCategoryPageRaw(page, categoryUrl);
+	if (firstPageRaw === undefined) {
+		return [];
+	}
+
 	const response = CategoryProductListingPage.parse(firstPageRaw);
 	const pages = Array.isArray(response.pagination.pages)
 		? response.pagination.pages
