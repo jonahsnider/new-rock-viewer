@@ -29,6 +29,7 @@ for (const categoryUrl of categoryUrls) {
 	const { pages, totalItems } = await getProductPagesForCategory(browserPage, categoryUrl);
 
 	expectedProductCount += totalItems;
+	const productCountBefore = allProducts.size;
 
 	for (const page of pages) {
 		extractionLog.message(
@@ -44,6 +45,10 @@ for (const categoryUrl of categoryUrls) {
 			throw error;
 		}
 	}
+
+	// Products can belong to multiple categories, if we just added totalItems we'd be counting products multiple times
+	expectedProductCount -= totalItems;
+	expectedProductCount += allProducts.size - productCountBefore;
 }
 
 extractionLog.stop(`Finished extracting ${allProducts.size.toLocaleString()} product listings`);
