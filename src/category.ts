@@ -2,7 +2,6 @@ import slugify from '@sindresorhus/slugify';
 import normalizeUrl from 'normalize-url';
 import type { Page } from 'playwright';
 import { CategoryProductListingPage } from './api/schemas/category.ts';
-import type { Page as PaginationPage } from './api/schemas/pagination.ts';
 import type { Product } from './api/schemas/product.ts';
 import { apiCache } from './cache.ts';
 
@@ -64,33 +63,27 @@ async function fetchCategoryPageRaw(page: Page, categoryUrl: string): Promise<Ca
 	return CategoryProductListingPage.parse(rawResponse);
 }
 
-export async function getProductsForCategory(page: Page, categoryUrl: string): Promise<Product[]> {
-	const firstPageRaw = await fetchCategoryPageRaw(page, categoryUrl);
-	return firstPageRaw?.products ?? [];
-}
-
-/**
- * @returns A list of URLs for the product pages in the category.
- */
-export async function getProductPagesForCategory(
+export async function getProductsForCategory(
 	page: Page,
 	categoryUrl: string,
-): Promise<{ totalItems: number; pages: PaginationPage[] }> {
-	const firstPageRaw = await fetchCategoryPageRaw(page, categoryUrl);
-	if (firstPageRaw === undefined) {
+): Promise<{ products: Product[]; nextPageUrl: string | undefined; currentPageNumber: number }> {
+	const contents = await fetchCategoryPageRaw(page, categoryUrl);
+	if (!contents) {
 		return {
-			totalItems: 0,
-			pages: [],
+			products: [],
+			nextPageUrl: undefined,
+			currentPageNumber: 1,
 		};
 	}
 
-	const response = CategoryProductListingPage.parse(firstPageRaw);
-	const pages = Array.isArray(response.pagination.pages)
-		? response.pagination.pages
-		: Object.values(response.pagination.pages);
+	const pages = Array.isArray(contents.pagination.pages)
+		? contents.pagination.pages
+		: Object.values(contents.pagination.pages);
+	const nextPage = pages.find((page) => page.type === 'next' && page.clickable && page.url !== categoryUrl);
 
 	return {
-		totalItems: response.pagination.total_items,
-		pages: pages.filter((page) => page.type === 'page'),
+		products: contents.products,
+		nextPageUrl: nextPage?.url,
+		currentPageNumber: contents.pagination.current_page,
 	};
 }
