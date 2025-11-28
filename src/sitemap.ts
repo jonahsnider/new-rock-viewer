@@ -30,7 +30,7 @@ export async function getCategoryUrls(): Promise<Set<string>> {
 		.find('a')
 		.map((_, el) => $(el).attr('href'));
 
-	log.success(`Found ${urls.length} category URLs`);
-
-	return new Set(urls);
+	const result = new Set(urls);
+	log.success(`Found ${result.size} category URLs`);
+	return result;
 }
