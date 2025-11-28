@@ -26,8 +26,13 @@ for (const categoryUrl of categoryUrls) {
 	const pageUrls = await getProductPagesForCategory(page, categoryUrl);
 	for (const pageUrl of pageUrls) {
 		extractionLog.message(`Extracting listings for ${categoryUrl} - page ${pageUrl}`);
-		const products = await getProductsForCategory(page, pageUrl);
-		_products.push(...products);
+		try {
+			const products = await getProductsForCategory(page, pageUrl);
+			_products.push(...products);
+		} catch (error) {
+			extractionLog.error(`An error occurred while extracting products for ${categoryUrl} - page ${pageUrl}`);
+			throw error;
+		}
 	}
 }
 
