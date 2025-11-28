@@ -6,7 +6,8 @@
 		"rewriteRelativeImportExtensions": true,
 		"skipLibCheck": true,
 		"target": "esnext",
-		"verbatimModuleSyntax": true
+		"verbatimModuleSyntax": true,
+		"strict": true
 	},
 	"exclude": ["node_modules"],
 	"include": ["**/*.ts", "**/*.tsx"]
