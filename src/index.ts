@@ -1,4 +1,5 @@
-import { progress, taskLog } from '@clack/prompts';
+import process from 'node:process';
+import { progress } from '@clack/prompts';
 import PQueue from 'p-queue';
 import type { Product } from './api/schemas/product.ts';
 import { authenticate, browser, context } from './browser.ts';
@@ -6,16 +7,16 @@ import { topLevelCache } from './cache.ts';
 import { getProductPagesForCategory, getProductsForCategory } from './category.ts';
 import { getCategoryUrls } from './sitemap.ts';
 
-const queue = new PQueue({ concurrency: 1 });
+const queue = new PQueue({ concurrency: 3 });
 
 await authenticate(context);
 
 const categoryUrls = await getCategoryUrls();
 
-const scrapingLog = progress({ max: categoryUrls.size });
-scrapingLog.start('Extracting product listings')
+const extractionLog = progress({ max: categoryUrls.size });
+extractionLog.start(`Extracting product listings for ${categoryUrls.size} categories`);
 
-const products: Product[] = [];
+const _products: Product[] = [];
 
 queue.addAll(
 	categoryUrls
@@ -31,14 +32,20 @@ queue.addAll(
 		.toArray(),
 );
 
-queue.on('active', () => {
-	scrapingLog.setMax(queue.size);
-	scrapingLog.advance(1);
-});
+queue
+	.on('active', () => {
+		extractionLog.setMax(queue.size);
+		extractionLog.advance(1, `Extracting product listings - ${queue.pending} running, ${queue.size} waiting`);
+	})
+	.on('error', (error) => {
+		console.error(error);
+		extractionLog.error('An error occurred while extracting product listings');
+		process.exit(1);
+	});
 
 await queue.onIdle();
 
-scrapingLog.stop('Finished extracting product listings');
+extractionLog.stop('Finished extracting product listings');
 
 await context.close();
 await browser.close();
