@@ -1,6 +1,6 @@
 import * as z from 'zod/mini';
 
-const PageNumber = z.int().check(z.positive());
+const PageNumber = z.int().check(z.nonnegative());
 const Page = z.discriminatedUnion('type', [
 	z.object({
 		type: z.literal('spacer'),
@@ -25,10 +25,10 @@ const Page = z.discriminatedUnion('type', [
 	}),
 ]);
 export const Pagination = z.object({
-	total_items: PageNumber,
-	items_shown_from: PageNumber,
-	items_shown_to: PageNumber,
+	total_items: z.int().check(z.nonnegative()),
+	items_shown_from: z.int().check(z.nonnegative()),
+	items_shown_to: z.int().check(z.nonnegative()),
 	current_page: PageNumber,
-	pages_count: PageNumber,
+	pages_count: z.int().check(z.nonnegative()),
 	pages: z.union([z.array(Page), z.record(z.string(), Page)]),
 });

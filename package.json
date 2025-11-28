@@ -1,5 +1,6 @@
 {
 	"dependencies": {
+		"@clack/prompts": "^1.0.0-alpha.7",
 		"@sanity/icons": "^3.7.4",
 		"@sanity/vision": "^4.19.0",
 		"@sindresorhus/slugify": "^3.0.0",

@@ -1,3 +1,4 @@
+import { progress, taskLog } from '@clack/prompts';
 import PQueue from 'p-queue';
 import type { Product } from './api/schemas/product.ts';
 import { authenticate, browser, context } from './browser.ts';
@@ -9,30 +10,35 @@ const queue = new PQueue({ concurrency: 1 });
 
 await authenticate(context);
 
-console.log('Fetching sitemap...');
 const categoryUrls = await getCategoryUrls();
 
-console.log(`Found ${categoryUrls.size} categories`);
+const scrapingLog = progress({ max: categoryUrls.size });
+scrapingLog.start('Extracting product listings')
 
 const products: Product[] = [];
 
-for (const categoryUrl of categoryUrls) {
-	queue.add(async () => {
-		const pageUrls = await getProductPagesForCategory(categoryUrl);
-		for (const pageUrl of pageUrls) {
-			const products = await getProductsForCategory(pageUrl);
+queue.addAll(
+	categoryUrls
+		.values()
+		.map((categoryUrl) => async () => {
+			const pageUrls = await getProductPagesForCategory(categoryUrl);
+			for (const pageUrl of pageUrls) {
+				const products = await getProductsForCategory(pageUrl);
 
-			products.push(...products);
-		}
-	});
-}
+				products.push(...products);
+			}
+		})
+		.toArray(),
+);
 
-console.log('Queued all tasks');
+queue.on('active', () => {
+	scrapingLog.setMax(queue.size);
+	scrapingLog.advance(1);
+});
 
-// Wait for all tasks to complete
 await queue.onIdle();
 
-console.log(`Scraping completed. Found ${products.length} unique products.`);
+scrapingLog.stop('Finished extracting product listings');
 
 await context.close();
 await browser.close();
