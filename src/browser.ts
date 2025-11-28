@@ -37,8 +37,48 @@ export const context = await browser.newContext({
 
 const ALREADY_LOGGED_IN_ROUTE = new URLPattern('https://www.newrock.com/en/my-account');
 
+/**
+ * Check if we have valid authentication cookies in the browser context.
+ * Returns true if authentication cookies exist and haven't expired.
+ */
+async function hasValidAuthCookies(context: BrowserContext): Promise<boolean> {
+	const cookies = await context.cookies('https://www.newrock.com');
+
+	// Check for PHPSESSID cookie (critical for session)
+	const phpSessionCookie = cookies.find((cookie) => cookie.name === 'PHPSESSID');
+
+	// Check for PrestaShop authentication cookie (starts with "PrestaShop-")
+	const prestaShopCookie = cookies.find((cookie) => cookie.name.startsWith('PrestaShop-'));
+
+	// If either cookie is missing, we need to authenticate
+	if (!phpSessionCookie || !prestaShopCookie) {
+		return false;
+	}
+
+	// Check if cookies have expired (expires is in Unix timestamp format)
+	const now = Date.now() / 1000; // Convert to seconds
+
+	// Check PHPSESSID expiration (expires is -1 for session cookies or a timestamp)
+	if (phpSessionCookie.expires !== -1 && phpSessionCookie.expires < now) {
+		return false;
+	}
+
+	// Check PrestaShop cookie expiration
+	if (prestaShopCookie.expires !== -1 && prestaShopCookie.expires < now) {
+		return false;
+	}
+
+	return true;
+}
+
 export async function authenticate(context: BrowserContext): Promise<void> {
 	const log = taskLog({ title: 'Signing in to New Rock' });
+
+	// Check if we already have valid authentication cookies
+	if (await hasValidAuthCookies(context)) {
+		log.success('Already authenticated with valid cookies');
+		return;
+	}
 
 	// Authenticate with the New Rock website by going through the actual login flow
 	// Using the AsyncDisposablePage wrapper ensures the page is automatically closed
