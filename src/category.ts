@@ -8,6 +8,7 @@ const DEFAULT_SEARCH_PARAMS = {
 	id_currency: '2',
 	SubmitCurrency: '1',
 } as const;
+const X_REQUEST_ID_HEADER = 'x-request-id';
 
 async function fetchCategoryPageRaw(categoryUrl: string): Promise<CategoryProductListingPage> {
 	const url = new URL(categoryUrl);
@@ -31,22 +32,40 @@ async function fetchCategoryPageRaw(categoryUrl: string): Promise<CategoryProduc
 			// Navigate to the domain first to establish context and trigger auth cookies
 			await page.goto('https://www.newrock.com/en/', { waitUntil: 'domcontentloaded' });
 
-			return await page.evaluate(async (url) => {
-				const response = await fetch(url, {
-					method: 'GET',
-					headers: {
-						Accept: 'application/json, text/plain, */*',
-						'X-Requested-With': 'XMLHttpRequest',
-					},
-					credentials: 'include',
-				});
+			const requestId: string = crypto.randomUUID();
 
-				if (!response.ok) {
-					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-				}
+			// Set up response listener before making the request - note no await
+			// Use a predicate to match the exact URL and ensure it's a GET request
+			const responsePromise = page.waitForResponse(async (response) => {
+				const actualRequestId = await response.request().headerValue('x-request-id');
+				return actualRequestId === requestId;
+			});
 
-				return response.json();
-			}, url.toString());
+			// Trigger the request using fetch() with custom headers in the page context
+			// We ignore the return value here and instead capture the response using waitForResponse()
+			await page.evaluate(
+				async (params) => {
+					await fetch(params.url, {
+						method: 'GET',
+						headers: {
+							Accept: 'application/json',
+							'X-Requested-With': 'XMLHttpRequest',
+							[params.headerName]: params.headerValue,
+						},
+						credentials: 'include',
+					});
+				},
+				{ url: url.toString(), headerName: X_REQUEST_ID_HEADER, headerValue: requestId },
+			);
+
+			// Wait for and capture the response from the network monitor
+			const response = await responsePromise;
+
+			if (!response.ok()) {
+				throw new Error(`HTTP ${response.status()}: ${response.statusText()}`);
+			}
+
+			return response.json();
 		},
 	});
 
