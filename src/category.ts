@@ -26,46 +26,26 @@ async function fetchCategoryPageRaw(page: Page, categoryUrl: string): Promise<Ca
 		ttl: '24h',
 		hardTimeout: '15s',
 		factory: async () => {
-			const requestId: string = crypto.randomUUID();
-
-			// Set up response listener before making the request - note no await
-			// Use a predicate to match the exact URL and ensure it's a GET request
-			const responsePromise = page.waitForResponse(
-				(response) => {
-					const requestHeaders = response.request().headers();
-
-					return (
-						Object.hasOwn(requestHeaders, X_REQUEST_ID_HEADER) && requestHeaders[X_REQUEST_ID_HEADER] === requestId
-					);
-				},
-				{ timeout: 5000 },
-			);
-
-			// Trigger the request using fetch() with custom headers in the page context
-			// We ignore the return value here and instead capture the response using waitForResponse()
-			await page.evaluate(
+			const json = await page.evaluate(
 				async (params) => {
-					await fetch(params.url, {
+					const response = await fetch(params.url, {
 						method: 'GET',
 						headers: {
 							Accept: 'application/json',
 							'X-Requested-With': 'XMLHttpRequest',
-							[params.headerName]: params.headerValue,
 						},
 						credentials: 'include',
 					});
+
+					if (response.ok) {
+						return await response.json();
+					}
+
+					throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 				},
-				{ url: url.toString(), headerName: X_REQUEST_ID_HEADER, headerValue: requestId },
+				{ url: url.toString() },
 			);
 
-			// Wait for and capture the response from the network monitor
-			const response = await responsePromise;
-
-			if (!response.ok()) {
-				throw new Error(`HTTP ${response.status()}: ${response.statusText()}`);
-			}
-
-			const json = await response.json();
 			return json;
 		},
 	});
