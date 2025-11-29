@@ -25,6 +25,9 @@ async function fetchCategoryPageRaw(page: Page, categoryUrl: string): Promise<Ca
 		factory: async () => {
 			const json = await page.evaluate(
 				async (params) => {
+					// Navigate to the domain first to establish context and trigger auth cookies
+					await page.goto('https://www.newrock.com/en/', { waitUntil: 'domcontentloaded' });
+
 					const response = await fetch(params.url, {
 						method: 'GET',
 						headers: {
