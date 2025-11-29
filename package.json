@@ -9,14 +9,17 @@
 	"type": "module",
 	"main": "package.json",
 	"scripts": {
-		"build": "sanity build",
-		"deploy": "sanity deploy",
-		"deploy-graphql": "sanity graphql deploy",
-		"dev": "sanity dev",
-		"extract": "node --experimental-transform-types --env-file-if-exists=.env src/index.ts",
+		"build": "tsc",
+		"dev": "node --watch --experimental-transform-types --env-file-if-exists=.env src/index.ts",
 		"lint": "biome check",
 		"lint:fix": "biome check --fix --unsafe",
-		"start": "sanity start"
+		"sanity:build": "sanity build",
+		"sanity:deploy": "sanity deploy",
+		"sanity:deploy-graphql": "sanity graphql deploy",
+		"sanity:dev": "sanity dev",
+		"sanity:start": "sanity start",
+		"sanity:typegen": "sanity schema extract --enforce-required-fields && sanity typegen generate",
+		"start": "node --experimental-transform-types --env-file-if-exists=.env src/index.ts"
 	},
 	"dependencies": {
 		"@clack/prompts": "^1.0.0-alpha.7",
