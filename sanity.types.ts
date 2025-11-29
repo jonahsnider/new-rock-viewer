@@ -19,12 +19,11 @@ export type Product = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
+  slug: Slug;
   name: string;
-  productId: Slug;
-  linkRewrite: Slug;
-  canonicalUrl: string;
-  price: number;
-  image: {
+  description: string;
+  url: string;
+  coverImage: {
     asset: {
       _ref: string;
       _type: "reference";
@@ -36,6 +35,25 @@ export type Product = {
     crop?: SanityImageCrop;
     _type: "image";
   };
+  images: Array<{
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+    _key: string;
+  }>;
+  features: Array<{
+    name: string;
+    value: string;
+    _key: string;
+  }>;
+  madeToOrder: boolean;
 };
 
 export type SanityImageCrop = {
