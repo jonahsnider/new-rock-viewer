@@ -7,7 +7,7 @@ import type { Product } from './schemas/api/product.ts';
 import type { ProductDetails } from './schemas/product-details.ts';
 import { getCategoryUrls } from './sitemap.ts';
 
-export async function extractProducts(): Promise<Map<string, Product>> {
+export async function extractProducts(log: boolean): Promise<Map<string, ProductDetails>> {
 	await authenticate(context);
 
 	const categoryUrls = await getCategoryUrls();
@@ -18,16 +18,18 @@ export async function extractProducts(): Promise<Map<string, Product>> {
 	await using disposableBrowserPage = await AsyncDisposablePage.create(context);
 	const { page: browserPage } = disposableBrowserPage;
 
-	const productListingsLog = taskLog({ title: `Extracting product listings from ${categoryUrls.size} categories` });
+	const productListingsLog = log
+		? taskLog({ title: `Extracting product listings from ${categoryUrls.size} categories` })
+		: undefined;
 
 	for (const categoryUrl of categoryUrls) {
 		const productCountBefore = allProductListings.size;
-		const groupLogger = productListingsLog.group(`Extracting listings for ${categoryUrl}`);
+		const groupLogger = productListingsLog?.group(`Extracting listings for ${categoryUrl}`);
 
 		let pageUrl: string | undefined = categoryUrl;
 		while (pageUrl) {
 			const categoryPage = await getProductsForCategory(browserPage, pageUrl);
-			groupLogger.message(`Page ${categoryPage.currentPageNumber}, products ${allProductListings.size}`);
+			groupLogger?.message(`Page ${categoryPage.currentPageNumber}, products ${allProductListings.size}`);
 			for (const product of categoryPage.products) {
 				allProductListings.set(product.id_product, product);
 			}
@@ -35,29 +37,29 @@ export async function extractProducts(): Promise<Map<string, Product>> {
 			pageUrl = categoryPage.nextPageUrl;
 		}
 
-		groupLogger.success(`Extracted ${allProductListings.size - productCountBefore} new products from ${categoryUrl}`);
+		groupLogger?.success(`Extracted ${allProductListings.size - productCountBefore} new products from ${categoryUrl}`);
 	}
 
-	productListingsLog.success(`Extracted ${allProductListings.size.toLocaleString()} product listings`);
+	productListingsLog?.success(`Extracted ${allProductListings.size.toLocaleString()} product listings`);
 
 	const allProductDetails = new Map<string, ProductDetails>();
 
 	const productDetailsLog = progress({ max: allProductListings.size });
-	productDetailsLog.start(`Extracting product details for ${allProductListings.size} products`);
+	productDetailsLog?.start(`Extracting product details for ${allProductListings.size} products`);
 	for (const product of allProductListings.values()) {
 		const productDetails = await getProductDetails(product.url.toString());
-		productDetailsLog.advance(
+		productDetailsLog?.advance(
 			undefined,
 			`Extracted product details for ${product.name} - ${allProductDetails.size.toLocaleString()}/${allProductListings.size.toLocaleString()}`,
 		);
 		allProductDetails.set(product.id_product, productDetails);
 	}
 
-	productDetailsLog.stop(`Extracted product details for ${allProductDetails.size} products`);
+	productDetailsLog?.stop(`Extracted product details for ${allProductDetails.size} products`);
 
 	await context.close();
 	await browser.close();
 	await topLevelCache.disconnectAll();
 
-	return allProductListings;
+	return allProductDetails;
 }

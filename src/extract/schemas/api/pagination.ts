@@ -2,21 +2,21 @@ import * as z from 'zod/mini';
 
 const PageNumber = z.int().check(z.nonnegative());
 export const Page = z.discriminatedUnion('type', [
-	z.object({
+	z.strictObject({
 		type: z.literal('spacer'),
 		page: z.null(),
 		clickable: z.literal(false),
 		current: z.literal(false),
 		url: z.url(),
 	}),
-	z.object({
+	z.strictObject({
 		type: z.enum(['next', 'previous']),
 		page: PageNumber,
 		clickable: z.boolean(),
 		current: z.literal(false),
 		url: z.url(),
 	}),
-	z.object({
+	z.strictObject({
 		type: z.literal('page'),
 		page: PageNumber,
 		clickable: z.boolean(),
@@ -25,12 +25,13 @@ export const Page = z.discriminatedUnion('type', [
 	}),
 ]);
 export type Page = z.infer<typeof Page>;
-export const Pagination = z.object({
+export const Pagination = z.strictObject({
 	total_items: z.int().check(z.nonnegative()),
 	items_shown_from: z.int().check(z.nonnegative()),
 	items_shown_to: z.int().check(z.nonnegative()),
 	current_page: PageNumber,
 	pages_count: z.int().check(z.nonnegative()),
 	pages: z.union([z.array(Page), z.record(z.string(), Page)]),
+	should_be_displayed: z.boolean(),
 });
 export type Pagination = z.infer<typeof Pagination>;

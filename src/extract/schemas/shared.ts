@@ -14,7 +14,7 @@ export const Image = z.object({
 	small: ImageSize,
 	medium: ImageSize,
 	large: ImageSize,
-	legend: z.string(),
+	legend: z.literal(''),
 	id_image: z.string(),
 	cover: z.nullable(z.literal('1')),
 	position: z.string(),

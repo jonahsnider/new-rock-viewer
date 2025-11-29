@@ -1,6 +1,6 @@
 import * as z from 'zod/mini';
 
-export const SortOrder = z.object({
+export const SortOrder = z.strictObject({
 	entity: z.string(),
 	field: z.string(),
 	direction: z.enum(['asc', 'desc']),

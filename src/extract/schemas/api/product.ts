@@ -1,11 +1,11 @@
 import * as z from 'zod/mini';
 import { Image } from '../shared.ts';
 
-export const Product = z.object({
+export const Product = z.strictObject({
 	add_to_cart_url: z.nullable(z.url()),
 	url: z.url(),
 	canonical_url: z.url(),
-	labels: z.object({
+	labels: z.strictObject({
 		tax_short: z.string(),
 		tax_long: z.string(),
 	}),
