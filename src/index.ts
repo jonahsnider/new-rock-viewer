@@ -3,6 +3,7 @@ import { createClient } from '@sanity/client';
 import { sanityImport } from '@sanity/import';
 import sanityConfig from '../sanity.config.ts';
 import { env } from './env.ts';
+import { topLevelCache } from './extract/cache.ts';
 import { extractProducts } from './extract/extract.ts';
 import { normalizeProductDetails, productToSanityDocument } from './normalize.ts';
 
@@ -61,5 +62,7 @@ if (result.warnings.length > 0) {
 		console.warn(`- ${warning}`);
 	}
 }
+
+await topLevelCache.disconnectAll();
 
 outro('Import complete!');

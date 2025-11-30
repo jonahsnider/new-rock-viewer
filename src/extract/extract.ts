@@ -1,6 +1,5 @@
 import { progress, taskLog } from '@clack/prompts';
 import { AsyncDisposablePage, authenticate, browser, context } from './browser.ts';
-import { topLevelCache } from './cache.ts';
 import { getProductsForCategory } from './category.ts';
 import { getProductDetails } from './product.ts';
 import type { Product } from './schemas/api/product.ts';
@@ -59,7 +58,6 @@ export async function extractProducts(log: boolean): Promise<Map<string, Product
 
 	await context.close();
 	await browser.close();
-	await topLevelCache.disconnectAll();
 
 	return allProductDetails;
 }
