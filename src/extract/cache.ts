@@ -4,6 +4,9 @@ import { BentoCache, bentostore } from 'bentocache';
 import { fileDriver } from 'bentocache/drivers/file';
 import type { CacheProvider } from 'bentocache/types';
 import normalizeUrl from 'normalize-url';
+import { BinaryCache } from '../binary-cache.ts';
+
+export const CACHE_DIR = path.join(import.meta.dirname, '..', '..', 'cache');
 
 export const topLevelCache = new BentoCache({
 	default: 'file',
@@ -11,7 +14,7 @@ export const topLevelCache = new BentoCache({
 		// biome-ignore lint/correctness/useHookAtTopLevel: This isn't a React hook
 		file: bentostore().useL2Layer(
 			fileDriver({
-				directory: path.join(import.meta.dirname, '..', '..', 'cache'),
+				directory: CACHE_DIR,
 				pruneInterval: '1h',
 			}),
 		),
@@ -31,6 +34,13 @@ export const apiCache = topLevelCache.namespace('api');
 
 export const productPagesCache = topLevelCache.namespace('product-pages');
 
-export function getCacheKey(url: URL): string {
-	return slugify(normalizeUrl(url.toString()), { preserveCharacters: ['/'] });
+/**
+ * Binary cache for storing downloaded asset files
+ */
+export const assetsCache = new BinaryCache(path.join(CACHE_DIR, 'assets'));
+
+export function getCacheKey(url: URL | string): string {
+	return slugify(normalizeUrl(url.toString(), { defaultProtocol: 'https', stripProtocol: true }), {
+		preserveCharacters: ['/'],
+	});
 }

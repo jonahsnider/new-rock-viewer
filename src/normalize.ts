@@ -1,3 +1,5 @@
+import { pathToFileURL } from 'node:url';
+import { getAssetPath } from './extract/assets.ts';
 import type { ProductDetails as RawProductDetails } from './extract/schemas/product-details.ts';
 
 export type ProductDetails = {
@@ -32,15 +34,7 @@ export function normalizeProductDetails(productDetails: RawProductDetails): Prod
 	};
 }
 
-/**
- * A Sanity document suitable for import. The _sanityAsset property
- * is used to specify asset URLs that will be downloaded and uploaded during import.
- */
-export interface SanityImportDocument {
-	_id: string;
-	_type: string;
-	[key: string]: unknown;
-}
+export type ProductDetailsImportDocument = ReturnType<typeof productToSanityDocument>;
 
 /**
  * Converts a normalized ProductDetails into a Sanity document ready for import.
@@ -72,5 +66,24 @@ export function productToSanityDocument(product: ProductDetails) {
 			value: feature.value,
 		})),
 		madeToOrder: product.madeToOrder,
+	};
+}
+
+export async function useLocalAssets(document: ProductDetailsImportDocument): Promise<ProductDetailsImportDocument> {
+	const [coverPath, imagePaths] = await Promise.all([
+		getAssetPath(document.coverImage._sanityAsset),
+		Promise.all(document.images.map((image) => getAssetPath(image._sanityAsset))),
+	]);
+
+	return {
+		...document,
+		coverImage: {
+			...document.coverImage,
+			_sanityAsset: `image@${pathToFileURL(coverPath)}`,
+		},
+		images: document.images.map((image, index) => ({
+			...image,
+			_sanityAsset: `image@${pathToFileURL(imagePaths[index])}`,
+		})),
 	};
 }
