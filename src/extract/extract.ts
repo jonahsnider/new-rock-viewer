@@ -1,5 +1,5 @@
 import { progress, taskLog } from '@clack/prompts';
-import { AsyncDisposablePage, authenticate, browser, context } from './browser.ts';
+import { authenticate, browser, context } from './browser.ts';
 import { getProductsForCategory } from './category.ts';
 import { getProductDetails } from './product.ts';
 import type { Product } from './schemas/api/product.ts';
@@ -11,11 +11,21 @@ export async function extractProducts(log: boolean): Promise<Map<string, Product
 
 	const categoryUrls = await getCategoryUrls();
 
+	const allProductListings = await extractProductListings(log, categoryUrls);
+
+	const allProductDetails = await extractProductDetails(allProductListings);
+
+	await context.close();
+	await browser.close();
+
+	return allProductDetails;
+}
+
+async function extractProductListings(log: boolean, categoryUrls: Set<string>) {
 	const allProductListings = new Map<string, Product>();
 
 	// Use browser context to make the fetch request with full auth and avoid bot detection
-	await using disposableBrowserPage = await AsyncDisposablePage.create(context);
-	const { page: browserPage } = disposableBrowserPage;
+	await using browserPage = await context.newPage();
 
 	const productListingsLog = log
 		? taskLog({ title: `Extracting product listings from ${categoryUrls.size} categories` })
@@ -40,7 +50,10 @@ export async function extractProducts(log: boolean): Promise<Map<string, Product
 	}
 
 	productListingsLog?.success(`Extracted ${allProductListings.size.toLocaleString()} product listings`);
+	return allProductListings;
+}
 
+async function extractProductDetails(allProductListings: Map<string, Product>): Promise<Map<string, ProductDetails>> {
 	const allProductDetails = new Map<string, ProductDetails>();
 
 	const productDetailsLog = progress({ max: allProductListings.size });
@@ -55,9 +68,6 @@ export async function extractProducts(log: boolean): Promise<Map<string, Product
 	}
 
 	productDetailsLog?.stop(`Extracted product details for ${allProductDetails.size} products`);
-
-	await context.close();
-	await browser.close();
 
 	return allProductDetails;
 }

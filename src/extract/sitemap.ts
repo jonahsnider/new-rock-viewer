@@ -1,6 +1,6 @@
 import { taskLog } from '@clack/prompts';
 import { load } from 'cheerio';
-import { AsyncDisposablePage, context } from './browser.ts';
+import { context } from './browser.ts';
 import { browserCache } from './cache.ts';
 
 const SITEMAP_URL = 'https://www.newrock.com/en/sitemap';
@@ -13,8 +13,7 @@ export async function getCategoryUrls(): Promise<Set<string>> {
 		ttl: '1w',
 		factory: async () => {
 			log.message('Opening new page');
-			await using disposablePage = await AsyncDisposablePage.create(context);
-			const { page } = disposablePage;
+			await using page = await context.newPage();
 
 			log.message('Loading sitemap page');
 			await page.goto(SITEMAP_URL, { waitUntil: WAIT_UNTIL });

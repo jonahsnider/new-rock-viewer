@@ -1,5 +1,5 @@
 import type { z } from 'zod/mini';
-import { AsyncDisposablePage, context } from './browser.ts';
+import { context } from './browser.ts';
 import { getCacheKey, productPagesCache } from './cache.ts';
 import { ProductDetails } from './schemas/product-details.ts';
 
@@ -11,11 +11,10 @@ export async function getProductDetails(productUrl: string): Promise<z.infer<typ
 	// Cache the raw JSON string to avoid bentocache serialization issues with arrays
 	const rawResponse = await productPagesCache.getOrSet({
 		key: cacheKey,
-		ttl: '24h',
-		hardTimeout: '15s',
+		ttl: '1w',
+		hardTimeout: '30s',
 		factory: async () => {
-			await using disposablePage = await AsyncDisposablePage.create(context);
-			const { page } = disposablePage;
+			await using page = await context.newPage();
 			await page.goto(url.toString(), { waitUntil: 'commit' });
 
 			// Select the element with ID 'product-details' and read its data-product attribute

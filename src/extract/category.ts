@@ -20,14 +20,14 @@ async function fetchCategoryPageRaw(page: Page, categoryUrl: string): Promise<Ca
 	// Cache the raw JSON string to avoid bentocache serialization issues with arrays
 	const rawResponse = await apiCache.getOrSet({
 		key: cacheKey,
-		ttl: '24h',
-		hardTimeout: '15s',
+		ttl: '1w',
+		hardTimeout: '30s',
 		factory: async () => {
+			// Navigate to the domain first to establish context and trigger auth cookies
+			await page.goto('https://www.newrock.com/en/', { waitUntil: 'domcontentloaded' });
+
 			const json = await page.evaluate(
 				async (params) => {
-					// Navigate to the domain first to establish context and trigger auth cookies
-					await page.goto('https://www.newrock.com/en/', { waitUntil: 'domcontentloaded' });
-
 					const response = await fetch(params.url, {
 						method: 'GET',
 						headers: {

@@ -1,29 +1,12 @@
 import path from 'node:path';
 import { taskLog } from '@clack/prompts';
 import { pathExists } from 'path-exists';
-import type { BrowserContext, Page } from 'playwright';
+import type { BrowserContext } from 'playwright';
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { env } from '../env.ts';
 
 chromium.use(StealthPlugin());
-
-export class AsyncDisposablePage {
-	public readonly page: Page;
-
-	private constructor(page: Page) {
-		this.page = page;
-	}
-
-	static async create(context: BrowserContext): Promise<AsyncDisposablePage> {
-		const page = await context.newPage();
-		return new AsyncDisposablePage(page);
-	}
-
-	async [Symbol.asyncDispose](): Promise<void> {
-		await this.page.close();
-	}
-}
 
 export const browser = await chromium.launch({
 	headless: true,
@@ -81,9 +64,7 @@ export async function authenticate(context: BrowserContext): Promise<void> {
 	}
 
 	// Authenticate with the New Rock website by going through the actual login flow
-	// Using the AsyncDisposablePage wrapper ensures the page is automatically closed
-	await using disposablePage = await AsyncDisposablePage.create(context);
-	const { page } = disposablePage;
+	await using page = await context.newPage();
 
 	log.message('Navigating to login page');
 	// Navigate to the login page
