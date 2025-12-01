@@ -1,4 +1,5 @@
 import { progress, taskLog } from '@clack/prompts';
+import pLimit from 'p-limit';
 import { authenticate, browser, context } from './browser.ts';
 import { getProductsForCategory } from './category.ts';
 import { getProductDetails } from './product.ts';
@@ -21,6 +22,8 @@ export async function extractProducts(log: boolean): Promise<Map<string, Product
 	return allProductDetails;
 }
 
+const newRockRequestLimiter = pLimit(3);
+
 async function extractProductListings(log: boolean, categoryUrls: Set<string>) {
 	const allProductListings = new Map<string, Product>();
 
@@ -37,7 +40,8 @@ async function extractProductListings(log: boolean, categoryUrls: Set<string>) {
 
 		let pageUrl: string | undefined = categoryUrl;
 		while (pageUrl) {
-			const categoryPage = await getProductsForCategory(browserPage, pageUrl);
+			const usedPageUrl: string = pageUrl;
+			const categoryPage = await newRockRequestLimiter(async () => getProductsForCategory(browserPage, usedPageUrl));
 			groupLogger?.message(`Page ${categoryPage.currentPageNumber}, products ${allProductListings.size}`);
 			for (const product of categoryPage.products) {
 				allProductListings.set(product.id_product, product);
@@ -58,14 +62,17 @@ async function extractProductDetails(allProductListings: Map<string, Product>): 
 
 	const productDetailsLog = progress({ max: allProductListings.size });
 	productDetailsLog?.start(`Extracting product details for ${allProductListings.size} products`);
-	for (const product of allProductListings.values()) {
-		const productDetails = await getProductDetails(product.url.toString());
-		productDetailsLog?.advance(
-			undefined,
-			`Extracted product details for ${product.name} - ${allProductDetails.size.toLocaleString()}/${allProductListings.size.toLocaleString()}`,
-		);
-		allProductDetails.set(product.id_product, productDetails);
-	}
+
+	await Promise.all(
+		allProductListings.values().map(async (product) => {
+			const productDetails = await newRockRequestLimiter(() => getProductDetails(product.url.toString()));
+			productDetailsLog?.advance(
+				undefined,
+				`Extracted product details for ${product.name} - ${allProductDetails.size.toLocaleString()}/${allProductListings.size.toLocaleString()}`,
+			);
+			allProductDetails.set(product.id_product, productDetails);
+		}),
+	);
 
 	productDetailsLog?.stop(`Extracted product details for ${allProductDetails.size} products`);
 
