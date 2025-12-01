@@ -3,11 +3,12 @@
 		"erasableSyntaxOnly": true,
 		"module": "nodenext",
 		"noEmit": true,
+		"noUncheckedIndexedAccess": true,
 		"rewriteRelativeImportExtensions": true,
 		"skipLibCheck": true,
+		"strict": true,
 		"target": "esnext",
-		"verbatimModuleSyntax": true,
-		"strict": true
+		"verbatimModuleSyntax": true
 	},
 	"exclude": ["node_modules"],
 	"include": ["**/*.ts", "**/*.tsx"]
