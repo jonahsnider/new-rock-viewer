@@ -12,7 +12,7 @@ export async function getProductDetails(productUrl: string): Promise<z.infer<typ
 	const rawResponse = await productPagesCache.getOrSet({
 		key: cacheKey,
 		ttl: '1w',
-		hardTimeout: '30s',
+		hardTimeout: '45s',
 		factory: async () => {
 			await using page = await context.newPage();
 			await page.goto(url.toString(), { waitUntil: 'commit' });
