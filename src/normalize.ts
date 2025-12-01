@@ -1,4 +1,5 @@
 import { pathToFileURL } from 'node:url';
+import * as z from 'zod/mini';
 import { getAssetPath } from './extract/assets.ts';
 import type { ProductDetails as RawProductDetails } from './extract/schemas/product-details.ts';
 
@@ -36,6 +37,15 @@ export function normalizeProductDetails(productDetails: RawProductDetails): Prod
 
 export type ProductDetailsImportDocument = ReturnType<typeof productToSanityDocument>;
 
+const ImageUrlToSanityAssetReference = z.codec(
+	z.url(),
+	z.string().check(z.startsWith('image@')).brand('sanityAssetReference'),
+	{
+		encode: (assetReference) => assetReference.replace('image@', ''),
+		decode: (url) => `image@${url}`,
+	},
+);
+
 /**
  * Converts a normalized ProductDetails into a Sanity document ready for import.
  * Uses the _sanityAsset syntax for proper asset handling during import.
@@ -54,11 +64,11 @@ export function productToSanityDocument(product: ProductDetails) {
 		url: product.url,
 		coverImage: {
 			_type: 'image',
-			_sanityAsset: `image@${product.cover}`,
+			_sanityAsset: z.decode(ImageUrlToSanityAssetReference, product.cover),
 		},
 		images: product.images.map((imageUrl) => ({
 			_type: 'image',
-			_sanityAsset: `image@${imageUrl}`,
+			_sanityAsset: z.decode(ImageUrlToSanityAssetReference, imageUrl),
 		})),
 		features: product.features.map((feature) => ({
 			_type: 'object',
@@ -71,19 +81,21 @@ export function productToSanityDocument(product: ProductDetails) {
 
 export async function useLocalAssets(document: ProductDetailsImportDocument): Promise<ProductDetailsImportDocument> {
 	const [coverPath, imagePaths] = await Promise.all([
-		getAssetPath(document.coverImage._sanityAsset),
-		Promise.all(document.images.map((image) => getAssetPath(image._sanityAsset))),
+		getAssetPath(z.encode(ImageUrlToSanityAssetReference, document.coverImage._sanityAsset)),
+		Promise.all(
+			document.images.map((image) => getAssetPath(z.encode(ImageUrlToSanityAssetReference, image._sanityAsset))),
+		),
 	]);
 
 	return {
 		...document,
 		coverImage: {
 			...document.coverImage,
-			_sanityAsset: `image@${pathToFileURL(coverPath)}`,
+			_sanityAsset: z.decode(ImageUrlToSanityAssetReference, pathToFileURL(coverPath).toString()),
 		},
 		images: document.images.map((image, index) => ({
 			...image,
-			_sanityAsset: `image@${pathToFileURL(imagePaths[index])}`,
+			_sanityAsset: z.decode(ImageUrlToSanityAssetReference, pathToFileURL(imagePaths[index]).toString()),
 		})),
 	};
 }
