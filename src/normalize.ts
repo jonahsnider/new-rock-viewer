@@ -1,3 +1,4 @@
+import assert from 'node:assert';
 import { pathToFileURL } from 'node:url';
 import * as z from 'zod/mini';
 import { getAssetPath } from './extract/assets.ts';
@@ -37,14 +38,12 @@ export function normalizeProductDetails(productDetails: RawProductDetails): Prod
 
 export type ProductDetailsImportDocument = ReturnType<typeof productToSanityDocument>;
 
-const ImageUrlToSanityAssetReference = z.codec(
-	z.url(),
-	z.string().check(z.startsWith('image@')).brand('sanityAssetReference'),
-	{
-		encode: (assetReference) => assetReference.replace('image@', ''),
-		decode: (url) => `image@${url}`,
-	},
-);
+const SanityAssetReference = z.string().check(z.startsWith('image@')).brand('sanityAssetReference');
+type SanityAssetReference = z.infer<typeof SanityAssetReference>;
+const ImageUrlToSanityAssetReference = z.codec(z.url(), SanityAssetReference, {
+	encode: (assetReference) => assetReference.replace('image@', ''),
+	decode: (url) => `image@${url}`,
+});
 
 /**
  * Converts a normalized ProductDetails into a Sanity document ready for import.
@@ -56,22 +55,22 @@ export function productToSanityDocument(product: ProductDetails) {
 		_type: 'product',
 
 		slug: {
-			_type: 'slug',
+			_type: 'slug' as const,
 			current: product.slug,
 		},
 		name: product.name,
 		description: product.description,
 		url: product.url,
 		coverImage: {
-			_type: 'image',
+			_type: 'image' as const,
 			_sanityAsset: z.decode(ImageUrlToSanityAssetReference, product.cover),
 		},
 		images: product.images.map((imageUrl) => ({
-			_type: 'image',
+			_type: 'image' as const,
 			_sanityAsset: z.decode(ImageUrlToSanityAssetReference, imageUrl),
 		})),
 		features: product.features.map((feature) => ({
-			_type: 'object',
+			_type: 'object' as const,
 			name: feature.name,
 			value: feature.value,
 		})),
@@ -80,22 +79,37 @@ export function productToSanityDocument(product: ProductDetails) {
 }
 
 export async function useLocalAssets(document: ProductDetailsImportDocument): Promise<ProductDetailsImportDocument> {
-	const [coverPath, imagePaths] = await Promise.all([
-		getAssetPath(z.encode(ImageUrlToSanityAssetReference, document.coverImage._sanityAsset)),
-		Promise.all(
-			document.images.map((image) => getAssetPath(z.encode(ImageUrlToSanityAssetReference, image._sanityAsset))),
-		),
+	const [coverImageLocal, imagesLocal] = await Promise.all([
+		useLocalAsset(document.coverImage),
+		Promise.all(document.images.map(useLocalAsset)),
 	]);
+
+	const validImagePaths = imagesLocal.filter((path) => path !== undefined);
+	const validCoverPath = coverImageLocal ?? validImagePaths[0];
+
+	assert(validCoverPath, new TypeError(`No cover path found for ${document.name} (${document.slug})`));
 
 	return {
 		...document,
-		coverImage: {
-			...document.coverImage,
-			_sanityAsset: z.decode(ImageUrlToSanityAssetReference, pathToFileURL(coverPath).toString()),
-		},
-		images: document.images.map((image, index) => ({
-			...image,
-			_sanityAsset: z.decode(ImageUrlToSanityAssetReference, pathToFileURL(imagePaths[index]).toString()),
-		})),
+		coverImage: validCoverPath,
+		images: validImagePaths,
+	};
+}
+
+type SanityImageReference = {
+	_type: 'image';
+	_sanityAsset: SanityAssetReference;
+};
+
+async function useLocalAsset(imageReference: SanityImageReference): Promise<SanityImageReference | undefined> {
+	const imageUrl = z.encode(ImageUrlToSanityAssetReference, imageReference._sanityAsset);
+	const path = await getAssetPath(imageUrl);
+	if (!path) {
+		return undefined;
+	}
+
+	return {
+		...imageReference,
+		_sanityAsset: z.decode(ImageUrlToSanityAssetReference, pathToFileURL(path).toString()),
 	};
 }
