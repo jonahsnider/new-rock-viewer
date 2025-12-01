@@ -66,7 +66,7 @@ async function doImport(documents: ProductDetailsImportDocument[]) {
 		// Use createOrReplace to allow re-importing and updating existing products
 		operation: 'createOrReplace',
 		// Allow failing assets to not block the entire import
-		allowFailingAssets: false,
+		allowFailingAssets: true,
 		// Replace assets to ensure latest versions are used
 		replaceAssets: false,
 		onProgress: (progress) => {
