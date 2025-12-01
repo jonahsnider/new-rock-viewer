@@ -6,7 +6,7 @@ import { assetsCache, CACHE_DIR, getCacheKey } from './cache.ts';
 
 const ASSETS_CACHE_DIR = path.join(CACHE_DIR, 'assets');
 
-const downloadLimit = pLimit(4);
+const downloadLimit = pLimit(6);
 
 await mkdir(ASSETS_CACHE_DIR, { recursive: true });
 
