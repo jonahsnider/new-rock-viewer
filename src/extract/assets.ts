@@ -1,14 +1,9 @@
-import { mkdir } from 'node:fs/promises';
-import path from 'node:path';
+import assert from 'node:assert';
 import ky from 'ky';
 import pLimit from 'p-limit';
-import { assetsCache, CACHE_DIR, getCacheKey } from './cache.ts';
-
-const ASSETS_CACHE_DIR = path.join(CACHE_DIR, 'assets');
+import { assetsCache, getCacheKey } from './cache.ts';
 
 const downloadLimit = pLimit(6);
-
-await mkdir(ASSETS_CACHE_DIR, { recursive: true });
 
 export async function getAssetPath(url: string): Promise<string> {
 	const cacheKey = getCacheKey(url);
@@ -19,5 +14,7 @@ export async function getAssetPath(url: string): Promise<string> {
 		await assetsCache.set(cacheKey, asset);
 	}
 
-	return path.join(ASSETS_CACHE_DIR, cacheKey);
+	const path = await assetsCache.getPath(cacheKey);
+	assert(path, new TypeError(`Asset not found in cache: ${url}`));
+	return path;
 }

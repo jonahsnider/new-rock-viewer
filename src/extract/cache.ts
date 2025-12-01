@@ -6,7 +6,7 @@ import type { CacheProvider } from 'bentocache/types';
 import normalizeUrl from 'normalize-url';
 import { BinaryCache } from '../binary-cache.ts';
 
-export const CACHE_DIR = path.join(import.meta.dirname, '..', '..', 'cache');
+const CACHE_DIR = path.join(import.meta.dirname, '..', '..', 'cache');
 
 export const topLevelCache = new BentoCache({
 	default: 'file',
