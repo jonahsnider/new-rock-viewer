@@ -74,5 +74,14 @@ export const product = defineType({
 			type: 'boolean',
 			validation: (rule) => rule.required(),
 		}),
+
+		defineField({
+			name: 'categories',
+			title: 'Categories',
+			icon: HashIcon,
+			type: 'array',
+			of: [{ type: 'string' }],
+			validation: (rule) => rule.required(),
+		}),
 	],
 });

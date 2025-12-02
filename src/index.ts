@@ -4,7 +4,7 @@ import { sanityImport } from '@sanity/import';
 import sanityConfig from '../sanity.config.ts';
 import { env } from './env.ts';
 import { topLevelCache } from './extract/cache.ts';
-import { extractProducts } from './extract/extract.ts';
+import { extractProducts, type ProductMeta } from './extract/extract.ts';
 import type { ProductDetails as RawProductDetails } from './extract/schemas/product-details.ts';
 import {
 	normalizeProductDetails,
@@ -13,7 +13,7 @@ import {
 	useLocalAssets,
 } from './normalize.ts';
 
-async function doExtract(): Promise<Map<string, RawProductDetails>> {
+async function doExtract(): Promise<Map<string, { details: RawProductDetails; meta: ProductMeta }>> {
 	// Extract products from the website
 	const extractionSpinner = spinner();
 	extractionSpinner.start('Extracting products from New Rock website');
@@ -22,7 +22,7 @@ async function doExtract(): Promise<Map<string, RawProductDetails>> {
 	return allProducts;
 }
 
-async function doTransform(allProducts: Map<string, RawProductDetails>) {
+async function doTransform(allProducts: Map<string, { details: RawProductDetails; meta: ProductMeta }>) {
 	// Normalize and convert to Sanity documents
 	const conversionSpinner = spinner();
 	conversionSpinner.start('Converting products to Sanity documents');
@@ -62,6 +62,7 @@ async function doImport(documents: ProductDetailsImportDocument[]) {
 	importSpinner.start('Importing products to Sanity');
 
 	const result = await sanityImport(documents, {
+		// @ts-expect-error This is fine, just an IDE issue from the two versions of @sanity/client
 		client,
 		// Use createOrReplace to allow re-importing and updating existing products
 		operation: 'createOrReplace',
@@ -69,6 +70,8 @@ async function doImport(documents: ProductDetailsImportDocument[]) {
 		allowFailingAssets: true,
 		// Replace assets to ensure latest versions are used
 		replaceAssets: false,
+		assetConcurrency: 12,
+		assetVerificationConcurrency: 20,
 		onProgress: (progress) => {
 			if (progress.step && progress.current !== undefined && progress.total !== undefined) {
 				importSpinner.message(

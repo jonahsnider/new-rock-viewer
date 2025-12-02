@@ -54,6 +54,7 @@ export type Product = {
     _key: string;
   }>;
   madeToOrder: boolean;
+  categories: Array<string>;
 };
 
 export type SanityImageCrop = {

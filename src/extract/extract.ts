@@ -7,7 +7,9 @@ import type { Product } from './schemas/api/product.ts';
 import type { ProductDetails } from './schemas/product-details.ts';
 import { getCategoryUrls } from './sitemap.ts';
 
-export async function extractProducts(log: boolean): Promise<Map<string, ProductDetails>> {
+export async function extractProducts(
+	log: boolean,
+): Promise<Map<string, { details: ProductDetails; meta: ProductMeta }>> {
 	await authenticate(context);
 
 	const categoryUrls = await getCategoryUrls();
@@ -24,8 +26,12 @@ export async function extractProducts(log: boolean): Promise<Map<string, Product
 
 const newRockRequestLimiter = pLimit(3);
 
+export type ProductMeta = {
+	categories: string[];
+};
+
 async function extractProductListings(log: boolean, categoryUrls: Set<string>) {
-	const allProductListings = new Map<string, Product>();
+	const allProductListings = new Map<string, { product: Product; meta: ProductMeta }>();
 
 	// Use browser context to make the fetch request with full auth and avoid bot detection
 	await using browserPage = await context.newPage();
@@ -44,7 +50,11 @@ async function extractProductListings(log: boolean, categoryUrls: Set<string>) {
 			const categoryPage = await newRockRequestLimiter(async () => getProductsForCategory(browserPage, usedPageUrl));
 			groupLogger?.message(`Page ${categoryPage.currentPageNumber}, products ${allProductListings.size}`);
 			for (const product of categoryPage.products) {
-				allProductListings.set(product.id_product, product);
+				const existingCategories = allProductListings.get(product.id_product)?.meta.categories ?? [];
+				allProductListings.set(product.id_product, {
+					product,
+					meta: { categories: [...existingCategories, categoryUrl] },
+				});
 			}
 
 			pageUrl = categoryPage.nextPageUrl;
@@ -57,20 +67,22 @@ async function extractProductListings(log: boolean, categoryUrls: Set<string>) {
 	return allProductListings;
 }
 
-async function extractProductDetails(allProductListings: Map<string, Product>): Promise<Map<string, ProductDetails>> {
-	const allProductDetails = new Map<string, ProductDetails>();
+async function extractProductDetails(
+	allProductListings: Map<string, { product: Product; meta: ProductMeta }>,
+): Promise<Map<string, { details: ProductDetails; meta: ProductMeta }>> {
+	const allProductDetails = new Map<string, { details: ProductDetails; meta: ProductMeta }>();
 
 	const productDetailsLog = progress({ max: allProductListings.size });
 	productDetailsLog?.start(`Extracting product details for ${allProductListings.size} products`);
 
 	await Promise.all(
 		allProductListings.values().map(async (product) => {
-			const productDetails = await newRockRequestLimiter(() => getProductDetails(product.url.toString()));
+			const productDetails = await newRockRequestLimiter(() => getProductDetails(product.product.url.toString()));
 			productDetailsLog?.advance(
 				undefined,
-				`Extracted product details for ${product.name} - ${allProductDetails.size.toLocaleString()}/${allProductListings.size.toLocaleString()}`,
+				`Extracted product details for ${product.product.name} - ${allProductDetails.size.toLocaleString()}/${allProductListings.size.toLocaleString()}`,
 			);
-			allProductDetails.set(product.id_product, productDetails);
+			allProductDetails.set(product.product.id_product, { details: productDetails, meta: product.meta });
 		}),
 	);
 

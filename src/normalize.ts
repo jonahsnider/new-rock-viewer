@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import { pathToFileURL } from 'node:url';
 import * as z from 'zod/mini';
 import { getAssetPath } from './extract/assets.ts';
+import type { ProductMeta } from './extract/extract.ts';
 import type { ProductDetails as RawProductDetails } from './extract/schemas/product-details.ts';
 
 export type ProductDetails = {
@@ -16,26 +17,28 @@ export type ProductDetails = {
 	}[];
 	madeToOrder: boolean;
 	url: string;
+	categories: string[];
 };
 
-export function normalizeProductDetails(productDetails: RawProductDetails): ProductDetails {
+export function normalizeProductDetails(productDetails: {
+	details: RawProductDetails;
+	meta: ProductMeta;
+}): ProductDetails {
 	return {
-		name: productDetails.name,
-		slug: productDetails.link_rewrite,
-		description: productDetails.description,
-		url: productDetails.link,
-
-		cover: productDetails.cover.large.url,
-		images: productDetails.images.map((image) => image.large.url),
-		features: productDetails.features.map((feature) => ({
+		slug: productDetails.details.link_rewrite,
+		description: productDetails.details.description,
+		name: productDetails.details.name,
+		url: productDetails.details.link,
+		cover: productDetails.details.cover.large.url,
+		images: productDetails.details.images.map((image) => image.large.url),
+		features: productDetails.details.features.map((feature) => ({
 			name: feature.name ?? '',
 			value: feature.value ?? '',
 		})),
-
-		madeToOrder: productDetails.available_later !== '',
+		madeToOrder: productDetails.details.available_later !== '',
+		categories: productDetails.meta.categories,
 	};
 }
-
 export type ProductDetailsImportDocument = ReturnType<typeof productToSanityDocument>;
 
 const SanityAssetReference = z.string().check(z.startsWith('image@')).brand('sanityAssetReference');
@@ -75,6 +78,7 @@ export function productToSanityDocument(product: ProductDetails) {
 			value: feature.value,
 		})),
 		madeToOrder: product.madeToOrder,
+		categories: product.categories,
 	};
 }
 
