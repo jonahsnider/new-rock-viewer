@@ -86,7 +86,7 @@ async function doImport(documents: ProductDetailsImportDocument[]) {
 	if (result.warnings.length > 0) {
 		console.warn('\nWarnings during import:');
 		for (const warning of result.warnings) {
-			console.warn(`- ${warning}`);
+			console.warn(`- ${warning.message}`);
 		}
 	}
 }
