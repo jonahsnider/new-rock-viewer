@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { defineCliConfig } from 'sanity/cli';
 
 export default defineCliConfig({
@@ -13,5 +14,9 @@ export default defineCliConfig({
 		autoUpdates: true,
 
 		appId: 's5jromb699st3uetjt6seuw7',
+	},
+	app: {
+		entry: path.join('src', 'app', 'app.tsx'),
+		organizationId: 'oBf3pOnAl',
 	},
 });

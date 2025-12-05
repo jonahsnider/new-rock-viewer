@@ -177,3 +177,57 @@ export type Geopoint = {
 
 export type AllSanitySchemaTypes = Product | SanityImageCrop | SanityImageHotspot | Slug | SanityImagePaletteSwatch | SanityImagePalette | SanityImageDimensions | SanityImageMetadata | SanityFileAsset | SanityAssetSourceData | SanityImageAsset | Geopoint;
 export declare const internalGroqTypeReferenceTo: unique symbol;
+// Source: ./src/app/components/ProductCard.tsx
+// Variable: productCardDataQuery
+// Query: *[_type == "product" && _id == $documentId][0]{ name, url, coverImage, images }
+export type ProductCardDataQueryResult = {
+  name: string;
+  url: string;
+  coverImage: {
+    asset: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  images: Array<{
+    asset?: {
+      _ref: string;
+      _type: "reference";
+      _weak?: boolean;
+      [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+    };
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+    _key: string;
+  }>;
+} | null;
+
+// Source: ./src/app/queries.ts
+// Variable: allFeatureNamesQuery
+// Query: array::unique(*[_type == 'product'].features[].name)
+export type AllFeatureNamesQueryResult = Array<string>;
+// Variable: allCategoriesQuery
+// Query: array::unique(*[_type == 'product'].categories[defined(@)])
+export type AllCategoriesQueryResult = Array<string>;
+// Variable: featureValuesQuery
+// Query: array::unique(*[_type == 'product'].features[name == $featureName].value)
+export type FeatureValuesQueryResult = Array<string>;
+
+// Query TypeMap
+import "@sanity/client";
+declare module "@sanity/client" {
+  interface SanityQueries {
+    "*[_type == \"product\" && _id == $documentId][0]{ name, url, coverImage, images }": ProductCardDataQueryResult;
+    "array::unique(*[_type == 'product'].features[].name)": AllFeatureNamesQueryResult;
+    "array::unique(*[_type == 'product'].categories[defined(@)])": AllCategoriesQueryResult;
+    "array::unique(*[_type == 'product'].features[name == $featureName].value)": FeatureValuesQueryResult;
+  }
+}
